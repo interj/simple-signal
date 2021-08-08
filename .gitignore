@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# IDE stuff
+build/
+*.kdev4
