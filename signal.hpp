@@ -52,10 +52,7 @@ public:
     Connection() = default;
     Connection(Action&& action)
     {
-        disconnect();
-        m_action = std::move(action);
-        if(m_action.ptr)
-            m_action->disconnecting.clear(std::memory_order_release);
+        operator=(std::move(action));
     }
     Connection& operator=(Action&& action)
     {
@@ -69,9 +66,7 @@ public:
     Connection(const Connection&) = delete;
     Connection(Connection&& other)
     {
-        //not interested in locking here - this might only become a problem when different threads are moving Connection object
-        //and trying to disconnect() it at the same time - does not sound like reasonable usecase
-        std::swap(m_action.ptr, other.m_action.ptr);
+        operator=(std::move(other));
     }
     Connection& operator=(const Connection&) = delete;
     Connection& operator=(Connection&& other)
@@ -112,7 +107,7 @@ public:
     }
 };
 
-//TODO use const to force user into using release() instead of this
+//TODO use const or proxy to force user into using release() instead of this
 class NonMovableConnection : protected Connection
 {
 public:
@@ -145,7 +140,6 @@ public:
 class TypeErasedSignal
 {
     //if you are absolutely sure about underlying type static_cast to Signal can be used
-    //otherwise use dynamic_cast, or don't use this class at all
 protected:
     std::vector<std::weak_ptr<void>> m_connections;
 };
@@ -174,9 +168,9 @@ public:
     {
         using detail::SpinAction;
         std::shared_ptr<SpinAction<Callable>> action{new SpinAction<Callable>{ATOMIC_FLAG_INIT, std::move(func)}};
-            m_connections.erase(std::remove_if(m_connections.begin(), m_connections.end(),
-                                               [](auto&& weak){return weak.expired();}), m_connections.end());
-            m_connections.emplace_back(action);
+        m_connections.erase(std::remove_if(m_connections.begin(), m_connections.end(),
+                                            [](auto&& weak){return weak.expired();}), m_connections.end());
+        m_connections.emplace_back(action);
         return {std::move(action)};
     };
 
