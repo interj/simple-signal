@@ -156,6 +156,7 @@ class Signal final : public Base
     using Base::m_connections;
     void hereBeAsserts()
     {
+        //TODO concepts?
         using detail::TrivialBase;
         static_assert(sizeof(Signal<Callable>) == sizeof(TypeErasedSignal), "Signal<Callable> must not have data members!");
         static_assert(std::is_same_v<Base, TypeErasedSignal> || std::is_same_v<Base, TrivialBase>,
@@ -168,7 +169,7 @@ class Signal final : public Base
 public:
     //movable Connection returned for free functions and captureless lambdas, non-movable for anything else
     template <typename F>
-    auto connect(F&& func) -> std::conditional_t<std::is_function_v<F> || std::is_convertible_v<F, Callable>,
+    auto connect(F&& func) -> std::conditional_t<std::is_function_v<F> || std::is_convertible_v<F, Callable*>,
                                                  Connection, NonMovableConnection>
     {
         using detail::SpinAction;
